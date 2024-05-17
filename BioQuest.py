@@ -56,11 +56,11 @@ class MyView(arcade.View):
         start_button.on_click = self.on_click_start
 
 
-        credits_button = arcade.gui.widgets.buttons.UIFlatButton(
-            text="Τίτλοι Τέλους", width=300
-        )
-        self.v_box.add(credits_button)
-        credits_button.on_click = self.on_click_credits
+        #credits_button = arcade.gui.widgets.buttons.UIFlatButton(
+        #    text="Τίτλοι Τέλους", width=300
+        #)
+        #self.v_box.add(credits_button)
+        #credits_button.on_click = self.on_click_credits
 
         # Again, method 1. Use a child class to handle events.
         quit_button = QuitButton(text="Έξοδος", width=300)
