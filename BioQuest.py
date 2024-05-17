@@ -117,8 +117,8 @@ class MyView(arcade.View):
     def on_click_credits(self, event):
         print("Credits:", event)
         self.stop_music()
-        video_player = VideoPlayer("intro\\credits.mp4")
-        video_player.play_video(self.window, switch_to_main_menu)
+        #video_player = VideoPlayer("intro\\credits.mp4")
+        #video_player.play_video(self.window, switch_to_main_menu)
 
 
 
@@ -169,10 +169,10 @@ class GameOverView(arcade.View):
 
     def on_mouse_press(self, _x, _y, _button, _modifiers):
         """ If the user presses the mouse button, re-start the game. """
-        video_player = VideoFileClip("intro\\credits.mp4")
-        video_player.preview(self.window, switch_to_main_menu)
-        view = MyView()
-        self.window.show_view(view)
+        #video_player = VideoFileClip("intro\\credits.mp4")
+        #video_player.preview(self.window, switch_to_main_menu)
+        #view = MyView()
+        #self.window.show_view(view)
     def switch_to_main_menu(self):
         view = MyView()
         self.window.show_view(view)
