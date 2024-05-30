@@ -2,9 +2,13 @@
 Example of Pymunk Physics Engine Platformer
 """
 import math
+import traceback
+
 import pygame
 from typing import Optional
 from pathlib import Path
+
+from arcade import Sprite
 from moviepy.editor import VideoFileClip
 import threading
 
@@ -56,12 +60,6 @@ class MyView(arcade.View):
         start_button.on_click = self.on_click_start
 
 
-        #credits_button = arcade.gui.widgets.buttons.UIFlatButton(
-        #    text="Τίτλοι Τέλους", width=300
-        #)
-        #self.v_box.add(credits_button)
-        #credits_button.on_click = self.on_click_credits
-
         # Again, method 1. Use a child class to handle events.
         quit_button = QuitButton(text="Έξοδος", width=300)
         self.v_box.add(quit_button)
@@ -79,7 +77,6 @@ class MyView(arcade.View):
         """Set up the game and initialize the variables."""
         # Set a timer to play the MP3 file after 15 seconds
         threading.Timer(15.5, self.start_music).start()
-        #self.sound.set_volume(0.1)
 
 
 
@@ -93,7 +90,6 @@ class MyView(arcade.View):
             self.sound.stop()
 
     def on_show_view(self):
-        #self.window.background_color = arcade.color.DARK_RED
         # Enable UIManager when view is shown to catch window events
         self.ui.enable()
 
@@ -104,22 +100,10 @@ class MyView(arcade.View):
     def on_click_start(self, event):
         print("Start:", event)
         self.stop_music()
-        #pygame.mixer.quit()
-        #pygame.mixer.init(frequency=44100)
-        #self.sound1.play(-1)
-        #self.music_started = True
         game=GameView()
         game.setup()
         self.window.show_view(game)
         self.sound1.play(-1)
-
-
-    def on_click_credits(self, event):
-        print("Credits:", event)
-        self.stop_music()
-        #video_player = VideoPlayer("intro\\credits.mp4")
-        #video_player.play_video(self.window, switch_to_main_menu)
-
 
 
     def on_draw(self):
@@ -169,10 +153,9 @@ class GameOverView(arcade.View):
 
     def on_mouse_press(self, _x, _y, _button, _modifiers):
         """ If the user presses the mouse button, re-start the game. """
-        #video_player = VideoFileClip("intro\\credits.mp4")
-        #video_player.preview(self.window, switch_to_main_menu)
-        #view = MyView()
-        #self.window.show_view(view)
+        view = MyView()
+        view.setup()
+        self.window.show_view(view)
     def switch_to_main_menu(self):
         view = MyView()
         self.window.show_view(view)
@@ -197,9 +180,8 @@ class YouLostView(arcade.View):
 
     def on_mouse_press(self, _x, _y, _button, _modifiers):
         """ If the user presses the mouse button, re-start the game. """
-        video_player = VideoFileClip("intro\\credits.mp4")
-        video_player.preview(self.window, switch_to_main_menu)
         view = MyView()
+        view.setup()
         self.window.show_view(view)
 
     def switch_to_main_menu(self):
@@ -235,7 +217,6 @@ SPRITE_SCALING_PLAYER = 2
 SPRITE_SCALING_TILES = 0.5
 
 # Scaled sprite size for tiles
-#SPRITE_SIZE = int(SPRITE_IMAGE_SIZE * SPRITE_SCALING_PLAYER)
 SPRITE_SIZE = 64
 
 # Size of grid to show on screen, in number of tiles
@@ -243,8 +224,6 @@ SCREEN_GRID_WIDTH = 25
 SCREEN_GRID_HEIGHT = 15
 
 # Size of screen to show, in pixels
-#SCREEN_WIDTH = SPRITE_SIZE * SCREEN_GRID_WIDTH
-#SCREEN_HEIGHT = SPRITE_SIZE * SCREEN_GRID_HEIGHT
 SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
 # Force applied while on the ground
@@ -382,7 +361,6 @@ class GameView(arcade.View):
         # Physics engine
         self.physics_engine = Optional[arcade.PymunkPhysicsEngine]
 
-        #self.gameover_sound = arcade.load_sound(":resources:sounds/gameover1.wav")
         self.collect_coin_sound = arcade.load_sound("sounds\\coin1.wav")
         self.open_door_sound = arcade.load_sound("sounds\\Door_opening.wav")
 
@@ -416,10 +394,9 @@ class GameView(arcade.View):
         self.left_pressed: bool = False
         self.right_pressed: bool = False
 
-    def setup(self):
+    def setup(self, collected_items=None):
         # Create the sprite lists
         self.player_list = arcade.SpriteList()
-        #self.bullet_list = arcade.SpriteList()
         self.coin_list = arcade.SpriteList(use_spatial_hash=True)
         self.gui_camera = arcade.camera.Camera2D()
         # Reset the score if we should
@@ -440,6 +417,8 @@ class GameView(arcade.View):
         for tex in atlas.textures:
             atlas.remove(tex)
 
+        arcade.cleanup_texture_cache()
+
         self.map = arcade.load_tilemap(self.level_map_filename / f"lvl{self.level}.tmx", 2)
         self.wall_list = self.map.sprite_lists["ground"]
         self.background_layer = self.map.sprite_lists["background"]
@@ -451,6 +430,16 @@ class GameView(arcade.View):
         self.collectables2_layer = self.map.sprite_lists["collectables2"]
         self.decoration_layer = self.map.sprite_lists["decoration"]
 
+        # Storage for collected items
+        self._collected_items = set()
+
+        # Remove collected items
+        if collected_items:
+            for item in list(self.item_list):
+                if item.position in collected_items:
+                    self._collected_items.add(item.position)
+                    item.kill()
+
         # Create player sprite
         self.player_sprite = PlayerSprite()
 
@@ -459,10 +448,6 @@ class GameView(arcade.View):
         self.top_of_map = (self.map.height * self.map.tile_height) * self.map.scaling
 
         # Set player location
-        #grid_x = 6
-        #grid_y = 8
-        #self.player_sprite.center_x = SPRITE_SIZE * grid_x + SPRITE_SIZE / 2
-        #self.player_sprite.center_y = SPRITE_SIZE * grid_y + SPRITE_SIZE / 2
         self.player_sprite.center_x = 475
         self.player_sprite.center_y = 600
         # Add to player sprite list
@@ -524,11 +509,11 @@ class GameView(arcade.View):
         # Create the items
     def on_key_press(self, key, modifiers):
         """Called whenever a key is pressed. """
-        if key == arcade.key.LEFT:
+        if key == arcade.key.LEFT or key == arcade.key.A:
             self.left_pressed = True
-        elif key == arcade.key.RIGHT:
+        elif key == arcade.key.RIGHT or key == arcade.key.D:
             self.right_pressed = True
-        elif key == arcade.key.UP:
+        elif key == arcade.key.UP or key == arcade.key.W:
             # find out if player is standing on ground
             if self.physics_engine.is_on_ground(self.player_sprite):
                 # She is! Go ahead and jump
@@ -537,9 +522,9 @@ class GameView(arcade.View):
 
     def on_key_release(self, key, modifiers):
         """Called when the user releases a key. """
-        if key == arcade.key.LEFT:
+        if key == arcade.key.LEFT or key == arcade.key.A:
             self.left_pressed = False
-        elif key == arcade.key.RIGHT:
+        elif key == arcade.key.RIGHT or key == arcade.key.D:
             self.right_pressed = False
 
     def pan_camera_to_user(self, panning_fraction: float = 1.0):
@@ -654,6 +639,7 @@ class GameView(arcade.View):
 
 
         for coin in coin_hit_list:
+            self._collected_items.add(coin.position)
             coin.remove_from_sprite_lists()
             self.score+=4
             self.score_text.text=f"Ποσοστό Ολοκλήρωσης Αντιδότου: {self.score} %"
@@ -666,7 +652,7 @@ class GameView(arcade.View):
                 self.player_sprite, self.map.sprite_lists["acid"]
         ):
             #arcade.play_sound(self.gameover_sound)
-            self.setup()
+            self.setup(collected_items=self._collected_items)
 
     def start_music(self):
         """Start playing the MP3 file."""
